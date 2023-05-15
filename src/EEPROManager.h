@@ -23,8 +23,13 @@
 #include <EEPROM.h>
 #include <CRC32.h>
 
+/** EEPROM managing class.*/
 class EEPROManager {
 public:
+    /** EEPROM variable.
+     * 
+     * @tparam T The type of the user data to be stored in EEPROM.
+    */
     template<class T>
     class EEPROMVar {
     public:
@@ -33,15 +38,16 @@ public:
         EEPROMVar<T>& operator=(const T new_value);
         operator T&() const;
     private:
-        uint16_t dataAddr;
-        T data;
+        uint16_t dataAddr;  /**< The address where user data is stored.*/
+        T data;             /**< The user data to be stored.*/
     };
 
 private:
+    /** Metainformation about an EEPROM variable for storing in EEPROM.*/
     struct VariableInfo {
-        uint32_t PathHash = 0;
-        uint16_t DataSize = 0;
-        uint16_t NextVarAddr = 0;
+        uint32_t PathHash = 0;      /**< The hash (basically CRC32) of variable path.*/
+        uint16_t DataSize = 0;      /**< The size of stored user's data.*/
+        uint16_t NextVarAddr = 0;   /**< The EEPROM address of the next variable info.*/
 
         VariableInfo() {};
 
@@ -52,9 +58,10 @@ private:
         };
     };
 
+    /** General metainformation about EEPROM for storing in EEPROM.*/
     struct MetaData {
-        uint16_t controlValue = 0;
-        int32_t compileTimestamp = 0;
+        uint16_t controlValue = 0;      /**< The special value allowing you to determine if the EEPROManager is initialized and stores any variables.*/
+        int32_t compileTimestamp = 0;   /**< The unix timestamp of the firmware compilation moment. It's used to clear variables on reflashing.*/
     };
 
     /** Initialize manager.
@@ -140,14 +147,18 @@ private:
     */
     static uint16_t getNewVarInfoAddr();
 
+    /** Set to meta info the information about whether at least one variable exists.
+     * 
+     * @param vars_exist The value indicating the existence of variables.
+    */
     static void setVariablesExistence(bool vars_exist);
 
     static const uint16_t varMetaDataSize = sizeof(VariableInfo);
-    static const uint16_t startAddr = 0;        /**< The initial EEPROM address for managing data*/
-    //static uint16_t firstVarInfoAddr;           /**< The address of the first variable info */
-    static uint16_t lastVarInfoAddr;            /**< The address of the VariableInfo of the last written variable*/
-    static VariableInfo lastVarInfo;            /**< The VariableInfo of the last written variable*/
-    static bool isInited;
+    static const uint16_t startAddr = 0;        /**< The initial EEPROM address for managing data.*/
+    //static uint16_t firstVarInfoAddr;         /**< The address of the first variable info.*/
+    static uint16_t lastVarInfoAddr;            /**< The address of the VariableInfo of the last written variable.*/
+    static VariableInfo lastVarInfo;            /**< The VariableInfo of the last written variable.*/
+    static bool isInited;                       /**< The value indicating whether this class is initialized.*/        
 
     #define FIRST_VAR_ADDR startAddr + sizeof(MetaData); // 2 - sizeof control value, 1 - size of variable existence value
 };
