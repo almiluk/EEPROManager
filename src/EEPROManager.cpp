@@ -1,5 +1,6 @@
 #include "EEPROManager.h"
 #include <CRC32.h>
+#include "helpers.h"
 
 uint16_t EEPROManager::lastVarInfoAddr = 0;
 bool EEPROManager::isInited = false;
@@ -9,37 +10,35 @@ EEPROManager::VariableInfo EEPROManager::lastVarInfo = EEPROManager::VariableInf
 //uint16_t EEPROManager::firstVarInfoAddr  = EEPROManager::startAddr + 2; // 2 - sizeof control value
 
 void EEPROManager::init() {
-    uint16_t control_value = readValue<uint16_t>(startAddr);
+    auto meta_data = readValue<MetaData>(startAddr);
+    int32_t current_compilation_time = compilationUnixTime();
+	
+    if(meta_data.controlValue == CONTROL_VALUE && current_compilation_time == meta_data.compileTimestamp) {
+        DEBUG_PRINTLN("Not very first run. No variables.");
+    } else if (meta_data.controlValue == ~CONTROL_VALUE && current_compilation_time == meta_data.compileTimestamp) {
+        DEBUG_PRINTLN("Not very first run. Some variables exist.");
 
-    if(control_value != CONTROL_VALUE) {
-        // the very first run
-        DEBUG_PRINTLN("The very first run");
+        uint16_t addr = FIRST_VAR_ADDR;
+
+        while(addr != 0) {
+            lastVarInfo = readValue<VariableInfo>(addr);
+            lastVarInfoAddr = addr;
+            addr = lastVarInfo.NextVarAddr;
+            DEBUG_PRINT(lastVarInfoAddr); DEBUG_PRINT(' ');
+            DEBUG_PRINT(lastVarInfo.PathHash); DEBUG_PRINT(' ');
+            DEBUG_PRINT(lastVarInfo.DataSize); DEBUG_PRINT(' ');
+            DEBUG_PRINTLN(lastVarInfo.NextVarAddr);
+        }
+    } else {
+        DEBUG_PRINTLN("The very first run.");
 
         // write control value
         //updateValue(startAddr, (uint16_t)CONTROL_VALUE);
 
-        control_value = CONTROL_VALUE;
-        updateBytes(startAddr, (uint8_t*)&control_value, sizeof(startAddr));
-
-        updateValue(startAddr + 2, (uint8_t)0);
-    } else {
-        DEBUG_PRINTLN("Not very first run");
-        uint8_t variable_exists =  readValue<uint16_t>(startAddr + 2);
-
-        if (variable_exists == VARIABLE_EXISTS_VALUE) {
-            DEBUG_PRINTLN("Variables exists:");
-            uint16_t addr = FIRST_VAR_ADDR;
-
-            while(addr != 0) {
-                lastVarInfo = readValue<VariableInfo>(addr);
-                lastVarInfoAddr = addr;
-                addr = lastVarInfo.NextVarAddr;
-                DEBUG_PRINT(lastVarInfoAddr); DEBUG_PRINT(' ');
-                DEBUG_PRINT(lastVarInfo.PathHash); DEBUG_PRINT(' ');
-                DEBUG_PRINT(lastVarInfo.DataSize); DEBUG_PRINT(' ');
-                DEBUG_PRINTLN(lastVarInfo.NextVarAddr);
-            }
-        }
+        meta_data.controlValue = CONTROL_VALUE;
+        meta_data.compileTimestamp = current_compilation_time;
+        updateValue(startAddr, meta_data);
+        DEBUG_PRINT("Compile timestamp: "); DEBUG_PRINTLN(meta_data.compileTimestamp);
     }
 
     isInited = true;
@@ -77,4 +76,11 @@ uint16_t EEPROManager::getNewVarInfoAddr() {
     }
 
 	return getDataAddr(lastVarInfoAddr) + lastVarInfo.DataSize;
+}
+
+void EEPROManager::setVariablesExistence(bool vars_exist) {
+    auto meta_data = readValue<MetaData>(startAddr);
+    meta_data.controlValue = vars_exist ? ~CONTROL_VALUE : CONTROL_VALUE;
+
+    updateValue(startAddr, meta_data);
 }

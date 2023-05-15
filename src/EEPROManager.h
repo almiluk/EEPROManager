@@ -9,8 +9,6 @@
 #define EEPROMANAGER_H
 
 #define CONTROL_VALUE 0xABCD
-#define VARIABLE_EXISTS_VALUE 0b11001100
-#define COMPILE_TIME_VAR_NAME "epprom/sys/compile_time"
 #define DEBUG_EEPROM
 
 #ifdef DEBUG_EEPROM
@@ -52,6 +50,11 @@ private:
             DataSize = data_size;
             NextVarAddr = next_var_addr;
         };
+    };
+
+    struct MetaData {
+        uint16_t controlValue = 0;
+        int32_t compileTimestamp = 0;
     };
 
     /** Initialize manager.
@@ -137,6 +140,8 @@ private:
     */
     static uint16_t getNewVarInfoAddr();
 
+    static void setVariablesExistence(bool vars_exist);
+
     static const uint16_t varMetaDataSize = sizeof(VariableInfo);
     static const uint16_t startAddr = 0;        /**< The initial EEPROM address for managing data*/
     //static uint16_t firstVarInfoAddr;           /**< The address of the first variable info */
@@ -144,7 +149,7 @@ private:
     static VariableInfo lastVarInfo;            /**< The VariableInfo of the last written variable*/
     static bool isInited;
 
-    #define FIRST_VAR_ADDR startAddr + 2 + 1 // 2 - sizeof control value, 1 - size of variable existence value
+    #define FIRST_VAR_ADDR startAddr + sizeof(MetaData); // 2 - sizeof control value, 1 - size of variable existence value
 };
 
 
@@ -215,13 +220,16 @@ inline uint16_t EEPROManager::addVar(const char *path, const T *data) {
     // write new variable info
     updateValue(info_addr, var_info);
 
+
     if(lastVarInfoAddr != 0) {
-        // if some variable already exists
+        // it's the first variable
         // update previous last variable info to write the address of the new variable info to it
+        // if it is the first variable => lastVarInfoAddr == 0 => EEPROM data won't be updated by updateValue()
         lastVarInfo.NextVarAddr = info_addr;
         updateValue(lastVarInfoAddr, lastVarInfo);
     } else {
-        updateValue(info_addr - 1, (uint8_t)VARIABLE_EXISTS_VALUE);
+        setVariablesExistence(true);
+        DEBUG_PRINTLN("The first variable written.");
     }
 
     // save new variable info as the last one
@@ -237,10 +245,16 @@ inline uint16_t EEPROManager::addVar(const char *path, const T *data) {
     return data_addr;
 }
 
-template<class T> inline void EEPROManager::updateValue(const uint16_t addr, const T data) {
+template<class T> 
+inline void EEPROManager::updateValue(const uint16_t addr, const T data) {
     if (addr != 0) {
 	    updateBytes(addr, (uint8_t *)&data, sizeof(data));
     }
+}
+
+template<> 
+inline void EEPROManager::updateValue<EEPROManager::MetaData>(const uint16_t addr, const MetaData data) {
+    updateBytes(addr, (uint8_t *)&data, sizeof(data));
 }
 
 template <class T>
