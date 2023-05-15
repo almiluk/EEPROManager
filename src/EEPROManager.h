@@ -31,7 +31,7 @@ public:
         EEPROMVar(const char* path, T default_value);
 
         EEPROMVar<T>& operator=(const T new_value);
-        operator T() const;
+        operator T&() const;
     private:
         uint16_t dataAddr;
         T data;
@@ -281,7 +281,7 @@ inline EEPROManager::EEPROMVar<T>& EEPROManager::EEPROMVar<T>::operator=(const T
 }
 
 template <class T>
-inline EEPROManager::EEPROMVar<T>::operator T() const {
+inline EEPROManager::EEPROMVar<T>::operator T&() const {
     return data;
 }
 
