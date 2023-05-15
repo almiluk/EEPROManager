@@ -48,7 +48,7 @@ public:
          * 
          * @return The reference to the user data.
          */
-        operator T&() const;
+        operator T&();
     private:
         uint16_t dataAddr;  /**< The address where user data is stored.*/
         T data;             /**< The user data to be stored.*/
@@ -72,8 +72,8 @@ private:
 
     /** General metainformation about EEPROM for storing in EEPROM.*/
     struct MetaData {
-        uint16_t controlValue = 0;      /**< The special value allowing you to determine if the EEPROManager is initialized and stores any variables.*/
-        int32_t compileTimestamp = 0;   /**< The unix timestamp of the firmware compilation moment. It's used to clear variables on reflashing.*/
+        uint16_t ControlValue = 0;      /**< The special value allowing you to determine if the EEPROManager is initialized and stores any variables.*/
+        int32_t CompileTimestamp = 0;   /**< The unix timestamp of the firmware compilation moment. It's used to clear variables on reflashing.*/
     };
 
     /** Initialize manager.
@@ -119,7 +119,7 @@ private:
      *  @param data The new data to be written.
     */
     template<class T>
-    static void updateValue(uint16_t addr, T data);
+    static void updateValue(const uint16_t addr, T data);
 
     /** Read data of custom types from EEPROM.
      * 
@@ -163,7 +163,7 @@ private:
      * 
      * @param vars_exist The value indicating the existence of variables.
     */
-    static void setVariablesExistence(bool vars_exist);
+    static void setVariablesExistence(const bool vars_exist);
 
     static const uint16_t varMetaDataSize = sizeof(VariableInfo);
     static const uint16_t startAddr = 0;        /**< The initial EEPROM address for managing data.*/
@@ -304,7 +304,7 @@ inline EEPROManager::EEPROMVar<T>& EEPROManager::EEPROMVar<T>::operator=(const T
 }
 
 template <class T>
-inline EEPROManager::EEPROMVar<T>::operator T&() const {
+inline EEPROManager::EEPROMVar<T>::operator T&() {
     return data;
 }
 

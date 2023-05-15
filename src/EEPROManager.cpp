@@ -13,9 +13,9 @@ void EEPROManager::init() {
     auto meta_data = readValue<MetaData>(startAddr);
     int32_t current_compilation_time = compilationUnixTime();
 	
-    if(meta_data.controlValue == CONTROL_VALUE && current_compilation_time == meta_data.compileTimestamp) {
+    if(meta_data.ControlValue == CONTROL_VALUE && current_compilation_time == meta_data.CompileTimestamp) {
         DEBUG_PRINTLN("Not very first run. No variables.");
-    } else if (meta_data.controlValue == ~CONTROL_VALUE && current_compilation_time == meta_data.compileTimestamp) {
+    } else if (meta_data.ControlValue == ~CONTROL_VALUE && current_compilation_time == meta_data.CompileTimestamp) {
         DEBUG_PRINTLN("Not very first run. Some variables exist.");
 
         uint16_t addr = FIRST_VAR_ADDR;
@@ -35,10 +35,10 @@ void EEPROManager::init() {
         // write control value
         //updateValue(startAddr, (uint16_t)CONTROL_VALUE);
 
-        meta_data.controlValue = CONTROL_VALUE;
-        meta_data.compileTimestamp = current_compilation_time;
+        meta_data.ControlValue = CONTROL_VALUE;
+        meta_data.CompileTimestamp = current_compilation_time;
         updateValue(startAddr, meta_data);
-        DEBUG_PRINT("Compile timestamp: "); DEBUG_PRINTLN(meta_data.compileTimestamp);
+        DEBUG_PRINT("Compile timestamp: "); DEBUG_PRINTLN(meta_data.CompileTimestamp);
     }
 
     isInited = true;
@@ -80,7 +80,7 @@ uint16_t EEPROManager::getNewVarInfoAddr() {
 
 void EEPROManager::setVariablesExistence(bool vars_exist) {
     auto meta_data = readValue<MetaData>(startAddr);
-    meta_data.controlValue = vars_exist ? ~CONTROL_VALUE : CONTROL_VALUE;
+    meta_data.ControlValue = vars_exist ? ~CONTROL_VALUE : CONTROL_VALUE;
 
     updateValue(startAddr, meta_data);
 }
