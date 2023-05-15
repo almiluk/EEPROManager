@@ -35,7 +35,19 @@ public:
     public:
         EEPROMVar(const char* path, T default_value);
 
+        /**
+         * @brief Assign the new value to the stored user data.
+         * 
+         * @param new_value The new value to be assigned.
+         * @return EEPROMVar<T>& The reference to this variable.
+         */
         EEPROMVar<T>& operator=(const T new_value);
+
+        /**
+         * @brief Convert the variable to the user data, it stores.
+         * 
+         * @return The reference to the user data.
+         */
         operator T&() const;
     private:
         uint16_t dataAddr;  /**< The address where user data is stored.*/
