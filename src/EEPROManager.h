@@ -1,5 +1,5 @@
 /*
-    EEPROM manager - The library for simplifying the work with EEPROM
+    EEPROM manager - The library for simplifying the work with EEPROM.
     GitHub: https://github.com/almiluk/EEPROManager
     Aleksandr Lukianov, almiluk@gmial.com
     MIT License
@@ -7,6 +7,8 @@
 
 #ifndef EEPROMANAGER_H
 #define EEPROMANAGER_H
+
+#include "EEPROMReaderWriter.h"
 
 #define CONTROL_VALUE 0xABCD
 #define DEBUG_EEPROM
@@ -26,34 +28,32 @@
 /** EEPROM managing class.*/
 class EEPROManager {
 public:
-    /** EEPROM variable.
+    /** Get Variable by its path(name) or create a new variable. 
+     *  If error occurs, returns 0.
      * 
-     * @tparam T The type of the user data to be stored in EEPROM.
+     *  @param path The Path of the Variable.
+     *  @param data The pointer to write data from the EEPROM to, if such variable exists. The pointer to data be written to the EEPROM, if such variable does not exist.
+     *  @return The EEPROM address of Variable's data.
     */
     template<class T>
-    class EEPROMVar {
-    public:
-        EEPROMVar(const char* path, T default_value);
+    static uint16_t GetOrAddVar(const char* path, T* data);
 
-        /**
-         * @brief Assign the new value to the stored user data.
-         * 
-         * @param new_value The new value to be assigned.
-         * @return EEPROMVar<T>& The reference to this variable.
-         */
-        EEPROMVar<T>& operator=(const T new_value);
+    /** Schedule the custom types data update.
+     * 
+     *  @param addr The address to update.
+     *  @param data The new data to be written.
+    */
+    template<class T>
+    static void Update(const uint16_t addr, T data);
 
-        /**
-         * @brief Convert the variable to the user data, it stores.
-         * 
-         * @return The reference to the user data.
-         */
-        operator T&();
-    private:
-        uint16_t dataAddr;  /**< The address where user data is stored.*/
-        T data;             /**< The user data to be stored.*/
-    };
-
+    /** Immediately update data of custom types in EEPROM.
+     * 
+     *  @param addr The address to update.
+     *  @param data The new data to be written.
+    */
+    template<class T>
+    static void UpdateNow(const uint16_t addr, T data);
+    
 private:
     /** Metainformation about an EEPROM variable for storing in EEPROM.*/
     struct VariableInfo {
@@ -82,16 +82,6 @@ private:
     */
     static void init();
 
-    /** Get Variable by its path(name) or create a new variable. 
-     *  If error occurs, returns 0.
-     * 
-     *  @param path The Path of the Variable.
-     *  @param data The pointer to write data from the EEPROM to, if such variable exists. The pointer to data be written to the EEPROM, if such variable does not exist.
-     *  @return The EEPROM address of Variable's data.
-    */
-    template<class T>
-    static uint16_t getOrAddVar(const char* path, T* data);
-
     /** Get Variable's address and data by its path(name). 
      *  If Variable with that path doesn't exist, returns 0.
      * 
@@ -113,14 +103,6 @@ private:
     template<class T>
     static uint16_t addVar(const char* path, const T* data);
 
-    /** Update data of custom types in EEPROM.
-     * 
-     *  @param addr The address to update.
-     *  @param data The new data to be written.
-    */
-    template<class T>
-    static void updateValue(const uint16_t addr, T data);
-
     /** Read data of custom types from EEPROM.
      * 
      *  @param addr The address to read from.
@@ -129,23 +111,6 @@ private:
     template<class T>
     static T readValue(const uint16_t addr);
 
-    /** Update data in EEPROM.
-     * 
-     *  @param addr The address to update.
-     *  @param data Pointer to the new data to be written.
-     *  @param size The size of the data to be written.
-    */
-    static void updateBytes(const uint16_t addr, const uint8_t* data, const uint16_t size);
-
-    /** Read data in EEPROM.
-     * 
-     *  @param addr The address to read from.
-     *  @param data Pointer to write read data.
-     *  @param size The size of the data to be read.
-    */
-    static void readBytes(const uint16_t addr, uint8_t* data, const uint16_t size);
-
-
     /** Get variable data address by its info address.
      * 
      *  @param var_info_addr The address of the variable info.
@@ -153,17 +118,19 @@ private:
     */
     static uint16_t getDataAddr(const uint16_t var_info_addr);
 
+    /** Set to meta info the information about whether at least one variable exists.
+     * 
+     * @param vars_exist The value indicating the existence of variables.
+    */
+    static void setVariablesExistence(const bool vars_exist);
+
     /** Get the address to write the new variable info to.
      * 
      * @return The address to write the new variable info to.
     */
     static uint16_t getNewVarInfoAddr();
 
-    /** Set to meta info the information about whether at least one variable exists.
-     * 
-     * @param vars_exist The value indicating the existence of variables.
-    */
-    static void setVariablesExistence(const bool vars_exist);
+    static EEPROMReaderWriter* eepromRW;
 
     static const uint16_t varMetaDataSize = sizeof(VariableInfo);
     static const uint16_t startAddr = 0;        /**< The initial EEPROM address for managing data.*/
@@ -179,7 +146,7 @@ private:
 // EEPROManager
 
 template <class T>
-inline uint16_t EEPROManager::getOrAddVar(const char* path, T* data) {
+inline uint16_t EEPROManager::GetOrAddVar(const char* path, T* data) {
     // check if it's the first run
     if (!isInited) {
         init();
@@ -235,13 +202,14 @@ inline uint16_t EEPROManager::addVar(const char *path, const T *data) {
     if (info_addr + sizeof(T) >= (uint16_t)EEPROM.length()) {
         // not enough memory
         DEBUG_PRINT("Not enough memory, addr: "); DEBUG_PRINT(info_addr);
-        DEBUG_PRINT("data len: "); DEBUG_PRINTLN(sizeof(T));
+        DEBUG_PRINT(", data len: "); DEBUG_PRINT(sizeof(T));
+        DEBUG_PRINT(", EEPROM size: "); DEBUG_PRINTLN(EEPROM.length());
         return 0;
     }
 
     VariableInfo var_info(path_hash, sizeof(T), 0);
     // write new variable info
-    updateValue(info_addr, var_info);
+    UpdateNow(info_addr, var_info);
 
 
     if(lastVarInfoAddr != 0) {
@@ -249,69 +217,47 @@ inline uint16_t EEPROManager::addVar(const char *path, const T *data) {
         // update previous last variable info to write the address of the new variable info to it
         // if it is the first variable => lastVarInfoAddr == 0 => EEPROM data won't be updated by updateValue()
         lastVarInfo.NextVarAddr = info_addr;
-        updateValue(lastVarInfoAddr, lastVarInfo);
-    } else {
-        setVariablesExistence(true);
+        UpdateNow(lastVarInfoAddr, lastVarInfo);
+	}
+	else
+	{
+		setVariablesExistence(true);
         DEBUG_PRINTLN("The first variable written.");
-    }
+	}
 
-    // save new variable info as the last one
+	// save new variable info as the last one
     lastVarInfoAddr = info_addr;
     lastVarInfo = var_info;
 
     // write default value
     uint16_t data_addr = getDataAddr(info_addr);
-    updateValue(data_addr, *data);
+    UpdateNow(data_addr, *data);
 
     DEBUG_PRINT("Added the new variable on address "); DEBUG_PRINTLN(info_addr);
 
     return data_addr;
 }
 
-template<class T> 
-inline void EEPROManager::updateValue(const uint16_t addr, const T data) {
+template <class T>
+inline T EEPROManager::readValue(const uint16_t addr) {
+    return eepromRW->ReadValue<T>(addr);
+}
+
+template <class T>
+inline void EEPROManager::Update(const uint16_t addr, T data) {
+    eepromRW->ScheduleUpdate(addr, data);
+}
+
+template <class T>
+inline void EEPROManager::UpdateNow(const uint16_t addr, T data) {
     if (addr != 0) {
-	    updateBytes(addr, (uint8_t *)&data, sizeof(data));
+        eepromRW->UpdateNow(addr, data);
     }
 }
 
-template<> 
-inline void EEPROManager::updateValue<EEPROManager::MetaData>(const uint16_t addr, const MetaData data) {
-    updateBytes(addr, (uint8_t *)&data, sizeof(data));
+template <>
+inline void EEPROManager::UpdateNow<EEPROManager::MetaData>(const uint16_t addr, MetaData data) {
+    eepromRW->UpdateNow(addr, data);
 }
-
-template <class T>
-inline T EEPROManager::readValue(const uint16_t addr) {
-    uint8_t* buf[sizeof(T)];
-    readBytes(addr, (uint8_t*)buf, (uint16_t)sizeof(T));
-    T data = *((T*)buf);
-	return data;
-}
-
-// EEPROManager::EEPROMVar
-
-template <class T>
-inline EEPROManager::EEPROMVar<T>::EEPROMVar(const char* path, const T default_value) {
-    data = default_value;
-    dataAddr = EEPROManager::getOrAddVar(path, &data);
-}
-
-template <class T>
-inline EEPROManager::EEPROMVar<T>& EEPROManager::EEPROMVar<T>::operator=(const T new_value) {
-	data = new_value;
-    EEPROManager::updateValue(dataAddr, data);
-    return *this;
-}
-
-template <class T>
-inline EEPROManager::EEPROMVar<T>::operator T&() {
-    return data;
-}
-
-//template<class T>
-//class EEPROMVar : public EEPROManager::EEPROMVar<T> {};
-
-template<class T>
-using EEPROMVar = EEPROManager::EEPROMVar<T>;
 
 #endif
