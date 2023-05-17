@@ -21,10 +21,17 @@ void EEPROManager::init() {
     
     int32_t current_compilation_time = compilationUnixTime();
     auto meta_data = readValue<MetaData>(startAddr);
+
+    bool same_compilation_times = true;
+    delay(5);
+
+    #if !defined NOT_CLEAR_EEPROM_ON_FLASHING
+        same_compilation_times = current_compilation_time == meta_data.CompileTimestamp;
+    #endif
 	
-    if(meta_data.ControlValue == CONTROL_VALUE && current_compilation_time == meta_data.CompileTimestamp) {
+    if(meta_data.ControlValue == CONTROL_VALUE && same_compilation_times) {
         DEBUG_PRINTLN("Not very first run. No variables.");
-    } else if (meta_data.ControlValue == (uint16_t)~CONTROL_VALUE && current_compilation_time == meta_data.CompileTimestamp) {
+    } else if (meta_data.ControlValue == (uint16_t)~CONTROL_VALUE && same_compilation_times) {
         DEBUG_PRINTLN("Not very first run. Some variables exist.");
 
         uint16_t addr = FIRST_VAR_ADDR;
