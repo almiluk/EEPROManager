@@ -92,8 +92,18 @@ inline T EEPROMReaderWriter::ReadValue(const uint16_t addr) const {
 
 class EEPROMReaderWriterESP : public virtual EEPROMReaderWriter {
 private:
+	/**
+	 * @brief 
+	 * 
+	 * @param upd 
+	 */
 	virtual void scheduleUpdate(UpdateInfo upd) override;
 
+	/**
+	 * @brief 
+	 * 
+	 * @param upd 
+	 */
 	virtual void updateNow(UpdateInfo upd) override;
 
 	/**
@@ -124,9 +134,19 @@ private:
 
 class EEPROMReaderWriterAVR : public virtual EEPROMReaderWriter {
 private:
-	virtual void scheduleUpdate(UpdateInfo upd);
+	/**
+	 * @brief 
+	 * 
+	 * @param upd 
+	 */
+	virtual void scheduleUpdate(UpdateInfo upd) override;
 
-	virtual void updateNow(UpdateInfo upd);
+	/**
+	 * @brief 
+	 * 
+	 * @param upd 
+	 */
+	virtual void updateNow(UpdateInfo upd) override;
 
     /** Update data in EEPROM.
      * 
