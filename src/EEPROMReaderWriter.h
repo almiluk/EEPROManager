@@ -116,7 +116,7 @@ private:
 	void updateBytes(UpdateInfo upd);
 
 
-	const uint8_t updateThreshold = 3; 	/**< The number of update requests (scheduleUpdate calls), after which the update will be performed.*/
+	static const uint8_t updateThreshold = 3; 	/**< The number of update requests (scheduleUpdate calls), after which the update will be performed.*/
 	uint8_t	updateCounter = 0;			/**< The number of update requests after the last update.*/
 };
 

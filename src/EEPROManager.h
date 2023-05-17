@@ -8,10 +8,9 @@
 #ifndef EEPROMANAGER_H
 #define EEPROMANAGER_H
 
-#include "EEPROMReaderWriter.h"
-
 #define CONTROL_VALUE 0xABCD
-#define DEBUG_EEPROM
+//#define DEBUG_EEPROM
+//#define NOT_CLEAR_EEPROM_ON_FLASHING
 
 #ifdef DEBUG_EEPROM
     #define DEBUG_PRINT(value) Serial.print(value)
@@ -20,6 +19,9 @@
     #define DEBUG_PRINT(value)
     #define DEBUG_PRINTLN(value)
 #endif
+
+
+#include "EEPROMReaderWriter.h"
 
 #include <Arduino.h>
 #include <EEPROM.h>
