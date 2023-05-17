@@ -1,7 +1,6 @@
 #ifndef EEPROM_VAR_H
 #define EEPROM_VAR_H
 
-#include <Arduino.h>
 #include "EEPROManager.h"
 
 /** EEPROM variable.
